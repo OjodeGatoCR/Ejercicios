@@ -100,6 +100,17 @@ input{font-family:inherit;}
 .reset-row{text-align:center;margin-top:24px;}
 .reset-btn{font-size:12px;color:var(--txf);text-decoration:underline;padding:8px;}
 
+/* CONGRATS */
+.congrats{position:fixed;inset:0;background:rgba(10,14,18,.92);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;transition:opacity .4s;}
+.congrats.show{opacity:1;}
+.congrats-card{background:var(--surf);border:1.5px solid var(--acc);border-radius:20px;padding:32px 28px;text-align:center;max-width:320px;width:90%;transform:scale(.9);transition:transform .4s;}
+.congrats.show .congrats-card{transform:scale(1);}
+.congrats-icon{font-size:48px;margin-bottom:12px;}
+.congrats-title{font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;color:var(--tx);margin-bottom:6px;}
+.congrats-sub{font-size:13.5px;color:var(--txd);line-height:1.55;margin-bottom:20px;}
+.congrats-next{background:var(--acc);color:#E0EAF0;font-size:14px;font-weight:700;padding:12px 24px;border-radius:12px;width:100%;margin-bottom:10px;}
+.congrats-skip{font-size:12px;color:var(--txf);text-decoration:underline;padding:6px;}
+
 /* FLOATING TIMER */
 .ftimer{position:fixed;left:50%;transform:translateX(-50%) translateY(0);bottom:14px;width:calc(min(480px,100vw) - 20px);background:var(--surf2);border:1px solid var(--brd);border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:100;transition:opacity .25s,transform .25s;}
 .ftimer.hidden{opacity:0;transform:translateX(-50%) translateY(120%);pointer-events:none;}
@@ -160,6 +171,16 @@ input{font-family:inherit;}
       <button onclick="G.tSkip()">Saltar ▶</button>
       <button onclick="G.tAdj(15)">+15s</button>
     </div>
+  </div>
+</div>
+
+<div class="congrats" id="congrats">
+  <div class="congrats-card">
+    <div class="congrats-icon">🎯</div>
+    <div class="congrats-title" id="congratsTitle">¡Día completado!</div>
+    <div class="congrats-sub" id="congratsSub"></div>
+    <button class="congrats-next" id="congratsNext" onclick="G.goNext()"></button>
+    <button class="congrats-skip" onclick="G.closeCongrats()">Quedarse en este día</button>
   </div>
 </div>
 
@@ -289,6 +310,41 @@ function beep(){
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function fmtDur(s){return s>=60?Math.floor(s/60)+'min'+(s%60?' '+s%60+'s':''):s+'s';}
 
+function isDayComplete(){
+  const d=DAYS.find(x=>x.id===S.day);
+  if(d.isRest){
+    // Día de descanso: solo estiramientos (verificar que todos tengan clase done)
+    const strBtns=document.querySelectorAll(`[id^="sb-${d.id}-"]`);
+    return strBtns.length>0&&[...strBtns].every(b=>b.classList.contains('done'));
+  }
+  // Calentamiento
+  const wu=getWu(S.day);
+  const wuOk=WU.every((_,i)=>!!wu[i]);
+  if(!wuOk)return false;
+  // Ejercicios
+  const exOk=d.ex.every((_,i)=>{const arr=getProg(d.id,i,d.ex[i].s);return arr.every(Boolean);});
+  if(!exOk)return false;
+  // Estiramientos
+  const strBtns=document.querySelectorAll(`[id^="sb-${d.id}-"]`);
+  return strBtns.length>0&&[...strBtns].every(b=>b.classList.contains('done'));
+}
+
+function checkAndShowCongrats(){
+  if(!isDayComplete())return;
+  const d=DAYS.find(x=>x.id===S.day);
+  const nextDay=DAYS.find(x=>x.id===S.day+1);
+  const msgs=['¡Excelente trabajo hoy!','¡Lo lograste!','¡Gran sesión!','¡Día conquistado!'];
+  const msg=msgs[Math.floor(Math.random()*msgs.length)];
+  $('congratsTitle').textContent=msg;
+  const sub=nextDay
+    ?`Completaste el ${d.title}. Mañana te espera el ${nextDay.title}.`
+    :`Completaste la semana completa. ¡Descansa bien y repite la próxima semana!`;
+  $('congratsSub').textContent=sub;
+  const nBtn=$('congratsNext');
+  if(nBtn)nBtn.textContent=nextDay?`Ir al Día ${nextDay.id} →`:'¡Volver al Día 1!';
+  setTimeout(()=>{const c=$('congrats');if(c)c.classList.add('show');},300);
+}
+
 function renderAll(){renderWeek();renderTabs();renderContent();}
 
 function renderWeek(){
@@ -330,16 +386,20 @@ function renderContent(){
 
 function wuRowHTML(w,i){
   const done=getWu(S.day)[i];
+  const ytq=encodeURIComponent(w.n+' cómo hacer');
+  const ytBtn=`<a class="yt-btn" href="https://www.youtube.com/results?search_query=${ytq}" target="_blank" rel="noopener">▶</a>`;
   if(w.tp==='timed'){
     const sub=w.bi?w.dur+'s c/lado':fmtDur(w.dur);
     return`<div class="wu-row">
       <div class="row-info"><div class="row-name">${w.n}</div><div class="row-sub">${sub}</div></div>
+      ${ytBtn}
       <button class="timer-btn${done?' done':''}" onclick="G.doWu(${i})">${done?'✓ hecho':'Iniciar'}</button>
     </div>`;
   }
   return`<div class="wu-row">
     <div class="chk-circle${done?' done':''}" onclick="G.ckWu(${i})">${done?'✓':''}</div>
     <div class="row-info"><div class="row-name">${w.n}</div><div class="row-sub">${w.r}</div></div>
+    ${ytBtn}
   </div>`;
 }
 
@@ -412,18 +472,18 @@ window.G={
     const arr=getProg(day,ei,ex.s);
     if(ex.tp==='timed'&&!arr[si]){
       const q=ex.bi?[{s:ex.dur,l:'Lado 1 · '+ex.n},{s:ex.dur,l:'Lado 2 · '+ex.n}]:[{s:ex.dur,l:ex.n}];
-      tStart(q,()=>{arr[si]=true;saveProg();renderContent();tRest(ex.rest);});return;
+      tStart(q,()=>{arr[si]=true;saveProg();renderContent();tRest(ex.rest);checkAndShowCongrats();});return;
     }
     arr[si]=!arr[si];saveProg();
     if(arr[si])tRest(ex.rest);
-    renderContent();
+    renderContent();checkAndShowCongrats();
   },
   doWu(i){
     const w=WU[i];
     const q=w.bi?[{s:w.dur,l:w.n+' · Lado 1'},{s:w.dur,l:w.n+' · Lado 2'}]:[{s:w.dur,l:w.n}];
-    tStart(q,()=>{getWu(S.day)[i]=true;saveWu();renderContent();});
+    tStart(q,()=>{getWu(S.day)[i]=true;saveWu();renderContent();checkAndShowCongrats();});
   },
-  ckWu(i){const wu=getWu(S.day);wu[i]=!wu[i];saveWu();renderContent();},
+  ckWu(i){const wu=getWu(S.day);wu[i]=!wu[i];saveWu();renderContent();checkAndShowCongrats();},
   doStr(day,i){
     const d=DAYS.find(x=>x.id===day);const s=d.str[i];
     const btn=$(`sb-${day}-${i}`);
@@ -434,8 +494,15 @@ window.G={
       if(s.bi){q.push({s:s.dur,l:s.n+' · Lado 1'});q.push({s:s.dur,l:s.n+' · Lado 2'});}
       else q.push({s:s.dur,l:s.n});
     }
-    tStart(q,()=>{const b=$(`sb-${day}-${i}`);if(b){b.classList.remove('running');b.classList.add('done');b.textContent='✓ hecho';}});
+    tStart(q,()=>{const b=$(`sb-${day}-${i}`);if(b){b.classList.remove('running');b.classList.add('done');b.textContent='✓ hecho';}checkAndShowCongrats();});
   },
+  goNext(){
+    const c=$('congrats');if(c)c.classList.remove('show');
+    const nextId=S.day<7?S.day+1:1;
+    S.day=nextId;saveCfg();renderTabs();renderContent();
+    $('content').scrollTo?$('content').scrollTo(0,0):window.scrollTo(0,0);
+  },
+  closeCongrats(){const c=$('congrats');if(c)c.classList.remove('show');},
   resetDay(){
     const k=dk(S.day);delete S.prog[k];delete S.wu[k];saveProg();saveWu();renderContent();
   },
