@@ -327,6 +327,37 @@ const DAYS=[
   strs:[st('Flexor de cadera (psoas)',45,true,2,true),st('Isquiotibiales',45,true,2),st('Glúteo "figura 4"',45,true,2),st('Pantorrilla en pared',40,true,2),st('Dorsal (lat stretch)',40,true,2),st('Postura del niño',45,false,2)]}
 ];
 
+// ── GOOGLE SHEETS SYNC ────────────────────────────────────────────────────────
+const SHEET_URL = localStorage.getItem('rc_sheet_url') || '';
+
+async function syncToSheet(action, payload) {
+  if (!SHEET_URL) return;
+  try {
+    await fetch(SHEET_URL, {
+      method: 'POST',
+      body: JSON.stringify({action, payload}),
+    });
+  } catch(e) { console.warn('Sheets sync:', e); }
+}
+
+async function loadFromSheet() {
+  if (!SHEET_URL) return;
+  try {
+    const res = await fetch(SHEET_URL + '?t=' + Date.now());
+    const data = await res.json();
+    if (data.weights) data.weights.forEach(r => { if(r.Clave && r.Peso_kg) S.wt[r.Clave] = r.Peso_kg; });
+    if (data.bodyWeight) data.bodyWeight.forEach(r => { if(r.Semana && r.Peso_kg) S.bw['w'+r.Semana.replace('S','')] = r.Peso_kg; });
+    if (data.progress) {
+      data.progress.forEach(r => {
+        if (!r.Fecha || !r.Dia) return;
+        const dayId = parseInt(r.Dia.replace('D',''));
+        const key = dayId + '_' + r.Fecha;
+        if (!S.prog[key]) S.prog[key] = {};
+      });
+    }
+  } catch(e) { console.warn('Sheets load:', e); }
+}
+
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const S={week:1,day:1,wt:{},prog:{},wu:{},bw:{}};
 
@@ -334,15 +365,16 @@ function dk(d){return d+'_'+new Date().toISOString().slice(0,10);}
 function getProg(d,ei,sets){const k=dk(d);if(!S.prog[k])S.prog[k]={};if(!S.prog[k][ei])S.prog[k][ei]=new Array(sets).fill(false);return S.prog[k][ei];}
 function getWu(d){const k=dk(d);if(!S.wu[k])S.wu[k]={};return S.wu[k];}
 
-async function load(){
-  const g=async k=>{try{const r=await window.storage.get(k);return r&&r.value?JSON.parse(r.value):null;}catch{return null;}};
-  const cfg=await g('rc_cfg');if(cfg){S.week=cfg.wk||1;S.day=cfg.day||1;}
-  const wt=await g('rc_wt');if(wt)Object.assign(S.wt,wt);
-  const pr=await g('rc_pr');if(pr)Object.assign(S.prog,pr);
-  const wu=await g('rc_wu');if(wu)Object.assign(S.wu,wu);
-  const bw=await g('rc_bw');if(bw)Object.assign(S.bw,bw);
+async async function load(){
+  const g=k=>{try{const r=localStorage.getItem(k);return r?JSON.parse(r):null;}catch{return null;}};
+  const cfg=g('rc_cfg');if(cfg){S.week=cfg.wk||1;S.day=cfg.day||1;}
+  const wt=g('rc_wt');if(wt)Object.assign(S.wt,wt);
+  const pr=g('rc_pr');if(pr)Object.assign(S.prog,pr);
+  const wu=g('rc_wu');if(wu)Object.assign(S.wu,wu);
+  const bw=g('rc_bw');if(bw)Object.assign(S.bw,bw);
+  await loadFromSheet();
 }
-function sv(k,v){try{window.storage.set(k,JSON.stringify(v),false);}catch{}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
 
 // ── TIMER ─────────────────────────────────────────────────────────────────────
 const T={iv:null,rem:0,tot:0,paused:false,q:[],cb:null};
@@ -393,6 +425,18 @@ function showCongrats(){
     :'¡Semana completa! Descansa bien — la semana que viene repites con más peso.';
   document.getElementById('cNext').textContent=next?'Ir al Día '+next.id+' →':'¡Empezar semana 2!';
   document.getElementById('congratsWrap').classList.add('show');
+  // Sync progreso completo del día a Sheets
+  if(!d.isRest){
+    const today=new Date().toISOString().slice(0,10);
+    const dk2=dk(S.day);
+    const exercises=d.exs.map((e,i)=>({
+      name:e.n,
+      sets:e.s,
+      done:(S.prog[dk2]&&S.prog[dk2][i])?S.prog[dk2][i].filter(Boolean).length:0,
+      weight:S.wt[i+'_'+S.day]||''
+    }));
+    syncToSheet('saveProgress',{date:today,day:S.day,dayTitle:d.title,exercises});
+  }
 }
 
 function checkDone(){setTimeout(()=>{if(isDayDone())showCongrats();},250);}
@@ -495,7 +539,12 @@ function renderWtPanel(){
     h+='<div class="wt-cell"><div class="wt-lbl">Semana '+w+'</div><div class="wt-row"><input type="number" inputmode="decimal" placeholder="--" value="'+v+'" data-w="'+w+'"><span>kg</span></div>'+diff+'</div>';
   }
   grid.innerHTML=h;
-  grid.querySelectorAll('input').forEach(inp=>{inp.addEventListener('change',function(){S.bw['w'+this.dataset.w]=this.value;sv('rc_bw',S.bw);renderWtPanel();});});
+  grid.querySelectorAll('input').forEach(inp=>{inp.addEventListener('change',function(){
+    S.bw['w'+this.dataset.w]=this.value;
+    sv('rc_bw',S.bw);
+    syncToSheet('saveBodyWeight',{week:this.dataset.w,weight:this.value});
+    renderWtPanel();
+  });});
   const vals=[1,2,3,4].map(w=>S.bw['w'+w]).filter(Boolean).map(Number);
   if(sum){
     if(vals.length>=2){const t=(vals[vals.length-1]-vals[0]).toFixed(1);sum.innerHTML='<b>Variación total:</b> '+(t>0?'+':'')+t+' kg desde semana 1';}
@@ -572,7 +621,7 @@ function doStr(day,i){
 }
 
 function toggleTip(day,ei){const el=document.getElementById('tip-'+day+'-'+ei);if(el)el.classList.toggle('on');}
-function saveWt(k,v){S.wt[k]=v;sv('rc_wt',S.wt);}
+function saveWt(k,v){S.wt[k]=v;sv('rc_wt',S.wt);syncToSheet('saveWeights',S.wt);}
 function resetDay(){const k=dk(S.day);delete S.prog[k];delete S.wu[k];sv('rc_pr',S.prog);sv('rc_wu',S.wu);renderBody();}
 
 function togglePanel(target){
