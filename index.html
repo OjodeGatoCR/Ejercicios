@@ -343,18 +343,13 @@ async function syncToSheet(action, payload) {
 async function loadFromSheet() {
   if (!SHEET_URL) return;
   try {
-    const res = await fetch(SHEET_URL + '?t=' + Date.now());
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(SHEET_URL + '?t=' + Date.now(), {signal: controller.signal});
+    clearTimeout(timeout);
     const data = await res.json();
     if (data.weights) data.weights.forEach(r => { if(r.Clave && r.Peso_kg) S.wt[r.Clave] = r.Peso_kg; });
     if (data.bodyWeight) data.bodyWeight.forEach(r => { if(r.Semana && r.Peso_kg) S.bw['w'+r.Semana.replace('S','')] = r.Peso_kg; });
-    if (data.progress) {
-      data.progress.forEach(r => {
-        if (!r.Fecha || !r.Dia) return;
-        const dayId = parseInt(r.Dia.replace('D',''));
-        const key = dayId + '_' + r.Fecha;
-        if (!S.prog[key]) S.prog[key] = {};
-      });
-    }
   } catch(e) { console.warn('Sheets load:', e); }
 }
 
@@ -365,7 +360,7 @@ function dk(d){return d+'_'+new Date().toISOString().slice(0,10);}
 function getProg(d,ei,sets){const k=dk(d);if(!S.prog[k])S.prog[k]={};if(!S.prog[k][ei])S.prog[k][ei]=new Array(sets).fill(false);return S.prog[k][ei];}
 function getWu(d){const k=dk(d);if(!S.wu[k])S.wu[k]={};return S.wu[k];}
 
-async async function load(){
+async function load(){
   const g=k=>{try{const r=localStorage.getItem(k);return r?JSON.parse(r):null;}catch{return null;}};
   const cfg=g('rc_cfg');if(cfg){S.week=cfg.wk||1;S.day=cfg.day||1;}
   const wt=g('rc_wt');if(wt)Object.assign(S.wt,wt);
@@ -650,7 +645,9 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   document.getElementById('cSkip').addEventListener('click',function(){document.getElementById('congratsWrap').classList.remove('show');});
 
-  load().then(function(){renderWeek();setAccent(S.day-1);renderTabs();renderBody();});
+  load()
+    .catch(function(){ console.warn('Load error, rendering with local data'); })
+    .finally(function(){renderWeek();setAccent(S.day-1);renderTabs();renderBody();});
 });
 
 })();
