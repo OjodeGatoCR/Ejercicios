@@ -139,6 +139,24 @@ input{font-family:inherit;font-size:16px;}
 .cg-sub{font-size:13.5px;color:var(--txd);line-height:1.6;margin-bottom:24px;}
 .cg-next{background:var(--acc);color:#243040;font-size:15px;font-weight:700;padding:14px 24px;border-radius:14px;width:100%;margin-bottom:12px;cursor:pointer;display:block;min-height:52px;}
 .cg-skip{font-size:13px;color:var(--txf);text-decoration:underline;padding:8px;cursor:pointer;}
+
+/* BIBLIOTECA */
+.lib-overlay{position:fixed;inset:0;background:var(--bg);z-index:150;display:none;flex-direction:column;overflow:hidden;width:100%;max-width:480px;left:50%;transform:translateX(-50%);}
+.lib-overlay.on{display:flex;}
+.lib-hdr{padding:14px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:12px;flex:0 0 auto;}
+.lib-back{font-size:14px;font-weight:700;color:var(--acc);padding:8px 4px;min-height:44px;display:flex;align-items:center;}
+.lib-ttl{font-family:'Alfa Slab One',serif;font-size:18px;color:var(--tx);}
+.lib-pills{padding:12px 16px;display:flex;gap:8px;overflow-x:auto;flex:0 0 auto;border-bottom:1px solid var(--brd);}
+.lib-pills::-webkit-scrollbar{display:none;}
+.lib-pill{padding:9px 16px;border-radius:20px;background:var(--surf);border:1.5px solid var(--brd);font-size:13px;font-weight:600;color:var(--txd);white-space:nowrap;cursor:pointer;min-height:40px;}
+.lib-pill.on{background:var(--acc);border-color:var(--acc);color:#243040;}
+.lib-exs{flex:1;overflow-y:auto;padding:16px;padding-bottom:40px;}
+.lib-ex{background:var(--surf);border:1.5px solid var(--brd);border-radius:14px;padding:13px 14px;margin-bottom:10px;}
+.lib-ex-name{font-size:14.5px;font-weight:700;}
+.lib-ex-muscle{font-size:12px;color:var(--txd);margin-top:2px;}
+.lib-img-panel{display:none;margin-top:12px;border-top:1px solid var(--brd);padding-top:12px;}
+.lib-img-panel.on{display:block;}
+.lib-tip{font-size:12px;color:var(--txd);background:var(--surf2);border-radius:8px;padding:8px 10px;line-height:1.5;margin-top:8px;}
 </style>
 
 <div id="app">
@@ -151,6 +169,7 @@ input{font-family:inherit;font-size:16px;}
         <text x="8" y="56" font-family="'Alfa Slab One',serif" font-size="26" fill="#C9B87A">GATO</text>
       </svg>
       <div class="tb-btns">
+        <button class="icon-btn" id="btnLib">📚</button>
         <button class="icon-btn" id="btnHist">📋</button>
         <button class="icon-btn" id="btnWt">⚖️</button>
         <button class="icon-btn" id="btnInfo">i</button>
@@ -192,6 +211,16 @@ input{font-family:inherit;font-size:16px;}
       <button class="cg-skip" id="cgSkip">Quedarse en este día</button>
     </div>
   </div>
+
+  <!-- BIBLIOTECA -->
+  <div class="lib-overlay" id="libOverlay">
+    <div class="lib-hdr">
+      <button class="lib-back" id="libBack">← Volver</button>
+      <div class="lib-ttl">Biblioteca</div>
+    </div>
+    <div class="lib-pills" id="libPills"></div>
+    <div class="lib-exs" id="libExs"></div>
+  </div>
 </div>
 
 <script>
@@ -215,8 +244,8 @@ const WU = [
 function ex(n,s,r,rest,m,tip,o){o=o||{};return{n,s,r,rest,m,tip,tp:o.tp||'reps',dur:o.dur||30,bi:!!o.bi,sug:o.sug||'',img:o.img||'',core:!!o.core};}
 function st(n,dur,bi,rn,pri){return{n,dur,bi:!!bi,rn:rn||1,pri:!!pri};}
 
-// TORSO SUPERIOR — mismo los 3 días
-function mkSup(){return [
+// TORSO SUPERIOR — base compartida
+function mkSupBase(){return [
   ex('Press banca plano con barra',4,'8-10',90,'Pectoral, tríceps','Barra baja hasta el pecho, codos a ~45°. Empuja sin bloquear los codos arriba.',{sug:'40kg',img:'Barbell_Bench_Press_-_Medium_Grip'}),
   ex('Press banca inclinado con mancuernas',3,'8-10',90,'Pectoral superior','Banco a 30-45°, baja controlado hasta sentir estiramiento en el pecho.',{sug:'16kg c/lado',img:'Dumbbell_Bench_Press'}),
   ex('Jalón al pecho agarre ancho',4,'8-10',90,'Dorsal ancho','Pecho afuera, lleva la barra a la parte alta del pecho apretando omóplatos.',{sug:'45kg',img:'Wide-Grip_Lat_Pulldown'}),
@@ -225,6 +254,24 @@ function mkSup(){return [
   ex('Elevaciones laterales',3,'15',60,'Deltoides medio','Brazos casi rectos, sube hasta la altura del hombro sin impulso.',{sug:'8kg c/lado',img:'Side_Lateral_Raise'}),
   ex('Curl de bíceps con mancuerna',3,'12',45,'Bíceps','Codos fijos, sube sin balancear la espalda.',{sug:'12kg c/lado',img:'Seated_Dumbbell_Curl'}),
   ex('Extensión de tríceps en polea',3,'12',45,'Tríceps','Codos pegados al torso, solo se mueve el antebrazo.',{sug:'15kg',img:'Triceps_Pushdown'})
+];}
+
+// D1 extra — énfasis Pecho
+function mkSup1(){return [...mkSupBase(),
+  ex('Aperturas con cable (chest fly)',3,'12',60,'Pectoral','Brazos semi-flexionados, junta las manos en arco al frente.',{sug:'10kg c/lado',img:'Flat_Bench_Cable_Flyes'}),
+  ex('Fondos en máquina',3,'10-12',60,'Pectoral, tríceps','Baja hasta 90° en el codo, sin hundir los hombros.',{sug:'35kg',img:'Dips_-_Triceps_Version'})
+];}
+
+// D3 extra — énfasis Espalda
+function mkSup3(){return [...mkSupBase(),
+  ex('Face pull en polea',3,'15',45,'Deltoides posterior, manguito rotador','Jala hacia la cara separando las manos al final del recorrido.',{sug:'12kg',img:'Face_Pull'}),
+  ex('Remo sentado en polea baja',3,'10',90,'Dorsal, romboides','Tronco fijo, evita balancearte hacia atrás para jalar.',{sug:'40kg',img:'Seated_Cable_Rows'})
+];}
+
+// D5 extra — énfasis Hombros
+function mkSup5(){return [...mkSupBase(),
+  ex('Press Arnold con mancuernas',3,'10',90,'Deltoides (3 haces)','Empieza con palmas hacia ti, rota mientras subes hasta palmas al frente.',{sug:'14kg c/lado',img:'Arnold_Dumbbell_Press'}),
+  ex('Elevaciones frontales',3,'12',45,'Deltoides anterior','Sube a la altura del hombro, controlado, sin impulso.',{sug:'8kg c/lado',img:'Dumbbell_Front_Raise'})
 ];}
 
 // CORE — bloques estilo Chris Heria (45s/15s, 3 rondas)
@@ -239,9 +286,83 @@ const CORES = {
   F:[coreEx('Crunches bicicleta'),coreEx('V-ups'),coreEx('Dragon flag negativo'),coreEx('Windshield wipers'),coreEx('Hollow body hold'),coreEx('Mountain climbers')]
 };
 
+// ── BIBLIOTECA DE EJERCICIOS ───────────────────────────────────────────────────
+function lb(n,m,tip,img){return{n,m,tip,img:img||''};}
+const LIB={
+  'Pecho':[
+    lb('Press banca plano con barra','Pectoral, tríceps','Barra baja hasta el pecho, codos a ~45°.','Barbell_Bench_Press_-_Medium_Grip'),
+    lb('Press banca inclinado con mancuernas','Pectoral superior','Banco a 30-45°, baja controlado.','Dumbbell_Bench_Press'),
+    lb('Press banca declinado con mancuernas','Pectoral inferior','Declive, baja hasta el pecho.','Decline_Dumbbell_Bench_Press'),
+    lb('Aperturas con cable (chest fly)','Pectoral','Brazos semi-flexionados, junta en arco.','Flat_Bench_Cable_Flyes'),
+    lb('Fondos en máquina o paralelas','Pectoral, tríceps','Baja hasta 90° en el codo.','Dips_-_Triceps_Version'),
+    lb('Press banca agarre cerrado','Pectoral, tríceps','Agarre estrecho, más énfasis en el tríceps.','Close-Grip_Barbell_Bench_Press'),
+  ],
+  'Espalda':[
+    lb('Jalón al pecho agarre ancho','Dorsal ancho','Pecho afuera, barra a la parte alta del pecho.','Wide-Grip_Lat_Pulldown'),
+    lb('Jalón al pecho agarre cerrado','Dorsal','Agarre neutro, jala hacia la clavícula.','Close-Grip_Front_Lat_Pulldown'),
+    lb('Remo con barra','Dorsal, romboides','Espalda recta, jala hacia el abdomen.','Bent_Over_Barbell_Row'),
+    lb('Remo con mancuerna a un brazo','Dorsal','Codo pegado, jala hacia la cadera.','One-Arm_Dumbbell_Row'),
+    lb('Remo sentado en polea baja','Dorsal, romboides','Tronco fijo, sin balancearte.','Seated_Cable_Rows'),
+    lb('Face pull en polea','Deltoides posterior','Jala hacia la cara, separa las manos al final.','Face_Pull'),
+    lb('Peso muerto rumano','Isquiotibiales, glúteo, espalda baja','Bisagra de cadera, espalda neutra.','Romanian_Deadlift'),
+  ],
+  'Hombros':[
+    lb('Press militar con mancuernas (sentado)','Deltoides, tríceps','Sin arquear la lumbar al empujar.','Seated_Barbell_Military_Press'),
+    lb('Press Arnold con mancuernas','Deltoides (3 haces)','Rota las palmas mientras subes.',''),
+    lb('Elevaciones laterales','Deltoides medio','Brazos casi rectos, sin impulso.','Side_Lateral_Raise'),
+    lb('Elevaciones frontales','Deltoides anterior','Sube a la altura del hombro, controlado.',''),
+    lb('Pájaros / rear delt fly','Deltoides posterior','Inclinado al frente, sube a los lados.','Seated_Bent-Over_Rear_Delt_Raise'),
+    lb('Face pull en polea','Deltoides posterior, manguito rotador','Jala hacia la cara, separa las manos.','Face_Pull'),
+  ],
+  'Bíceps':[
+    lb('Curl de bíceps con mancuerna','Bíceps','Codos fijos, sube sin balancear la espalda.','Seated_Dumbbell_Curl'),
+    lb('Curl martillo','Bíceps, antebrazo','Agarre neutro, palmas enfrentadas.','Hammer_Curls'),
+    lb('Curl de barra','Bíceps','Codos fijos, contrae al tope.','Barbell_Curl'),
+    lb('Curl predicador','Bíceps','Codo apoyado, rango completo.','Preacher_Curl'),
+    lb('Curl en polea baja','Bíceps','Tensión constante en todo el recorrido.','Standing_Biceps_Cable_Curl'),
+  ],
+  'Tríceps':[
+    lb('Extensión de tríceps en polea','Tríceps','Codos pegados, solo se mueve el antebrazo.','Triceps_Pushdown'),
+    lb('Press francés con barra Z','Tríceps','Codos fijos apuntando al techo, baja controlado.','Lying_Triceps_Press'),
+    lb('Fondos en máquina','Tríceps, pectoral','Baja hasta 90°, sin hundir hombros.','Dips_-_Triceps_Version'),
+    lb('Extensión overhead con cuerda','Tríceps cabeza larga','Estira al máximo arriba, baja controlado.','Cable_Rope_Overhead_Triceps_Extension'),
+    lb('Patada de tríceps (kickback)','Tríceps','Codo fijo, extiende completamente.','Tricep_Dumbbell_Kickback'),
+  ],
+  'Cuádriceps':[
+    lb('Sentadilla goblet','Cuádriceps, glúteo','Mancuerna al pecho, rodillas hacia afuera.','Goblet_Squat'),
+    lb('Prensa de piernas (leg press)','Cuádriceps, glúteo','Pies al ancho de hombros, 90° en rodilla.','Leg_Press'),
+    lb('Extensión de cuádriceps en máquina','Cuádriceps','Rango completo, controla la bajada.','Leg_Extensions'),
+    lb('Step-up controlado','Cuádriceps, glúteo','Solo con la pierna de trabajo, sin impulso.','Dumbbell_Step_Ups'),
+    lb('Zancada con mancuernas','Cuádriceps, glúteo','Rodilla delantera no supera el pie.',''),
+  ],
+  'Glúteo / Isquio':[
+    lb('Hip thrust con barra','Glúteo máximo','Espalda alta en banco, aprieta el glúteo al tope.','Barbell_Hip_Thrust'),
+    lb('Peso muerto rumano','Isquiotibiales, glúteo','Bisagra de cadera, espalda neutra.','Romanian_Deadlift'),
+    lb('Curl femoral en máquina','Isquiotibiales','Controla la bajada, no sueltes el peso.','Lying_Leg_Curls'),
+    lb('Prensa pies altos (énfasis glúteo)','Glúteo, isquiotibiales','Pies en la parte alta de la plataforma.','Leg_Press'),
+    lb('Abducción en máquina','Glúteo medio, abductores','Abre controlado, sin dar impulso.',''),
+  ],
+  'Pantorrillas':[
+    lb('Elevación de pantorrilla sentado (máquina)','Gastrocnemio, sóleo','Rango completo, sube lo máximo posible.','Seated_Calf_Raise'),
+    lb('Elevación de pantorrilla de pie','Gastrocnemio','Sube en punta de pie, baja controlado.','Standing_Calf_Raises'),
+    lb('Elevación de punta de pie (tibialis raise)','Tibial anterior, tobillo','De pie, sube los dedos hacia ti.',''),
+    lb('Calf press en la leg press','Gastrocnemio, sóleo','Rango completo con las puntas de los pies.','Calf_Press_On_The_Leg_Press_Machine'),
+  ],
+  'Core':[
+    lb('Cable crunch','Recto abdominal','Rodillas en suelo, dobla el torso con el abdomen.','Cable_Crunch'),
+    lb('Pallof press','Oblicuos, anti-rotación','De pie, resiste la rotación del torso.','Pallof_Press'),
+    lb('Dead bug','Core profundo','Espalda pegada al piso, extiende brazo y pierna opuestos.','Dead_Bug'),
+    lb('Plancha frontal','Core, transverso abdominal','Línea recta, sin hundir la cadera.','Plank'),
+    lb('Reverse crunch','Recto abdominal inferior','Levanta la cadera contrayendo el abdomen.','Reverse_Crunch'),
+    lb('Ab wheel rollout','Core completo','Rueda hacia adelante controlado, sin dejar caer la espalda.','Barbell_Ab_Rollout_-_On_Knees'),
+    lb('Mountain climbers','Core, cardio','Ritmo controlado, abdomen apretado.','Mountain_Climbers'),
+    lb('Hollow body hold','Core profundo','Espalda plana, hombros y piernas ligeramente elevados.',''),
+  ],
+};
+
 const DAYS = [
-  {id:1,cat:'Torso Superior',title:'Torso Superior + Core A',warn:null,
-   exs:[...mkSup(),...CORES.A],
+  {id:1,cat:'Torso Superior',title:'Torso Superior + Pecho',warn:null,
+   exs:[...mkSup1(),...CORES.A],
    cardio:'20 min bicicleta HIIT — 30s fuerte / 90s suave',
    strs:[st('Pectoral en marco de puerta',30,true),st('Hombro cruzado (cross-body)',30,true),st('Tríceps overhead',25,true),st('Dorsal (lat stretch)',30,true)]},
 
@@ -258,8 +379,8 @@ const DAYS = [
    cardio:'20 min caminadora inclinada',
    strs:[st('Flexor de cadera (psoas)',35,true,1,true),st('Isquiotibiales',30,true),st('Cuádriceps de pie',25,true),st('Pantorrilla en pared',25,true)]},
 
-  {id:3,cat:'Torso Superior',title:'Torso Superior + Core C',warn:null,
-   exs:[...mkSup(),...CORES.C],
+  {id:3,cat:'Torso Superior',title:'Torso Superior + Espalda',warn:null,
+   exs:[...mkSup3(),...CORES.C],
    cardio:'20 min bicicleta HIIT — 30s fuerte / 90s suave',
    strs:[st('Pectoral en marco de puerta',30,true),st('Hombro cruzado (cross-body)',30,true),st('Tríceps overhead',25,true),st('Dorsal (lat stretch)',30,true)]},
 
@@ -276,8 +397,8 @@ const DAYS = [
    cardio:'20 min bicicleta moderada',
    strs:[st('Flexor de cadera (psoas)',35,true,1,true),st('Isquiotibiales',30,true),st('Glúteo "figura 4"',30,true),st('Pantorrilla en pared',25,true)]},
 
-  {id:5,cat:'Torso Superior',title:'Torso Superior + Core E',warn:null,
-   exs:[...mkSup(),...CORES.E],
+  {id:5,cat:'Torso Superior',title:'Torso Superior + Hombros',warn:null,
+   exs:[...mkSup5(),...CORES.E],
    cardio:'20 min bicicleta HIIT — 30s fuerte / 90s suave',
    strs:[st('Pectoral en marco de puerta',30,true),st('Hombro cruzado (cross-body)',30,true),st('Tríceps overhead',25,true),st('Dorsal (lat stretch)',30,true)]},
 
@@ -580,8 +701,73 @@ function togglePanel(target){
   if(target==='pnlHist')renderHistPanel();
 }
 
+// ── BIBLIOTECA ────────────────────────────────────────────────────────────────
+let libGroup = Object.keys(LIB)[0];
+const libImgLoaded = {};
+
+function openLib(){$('libOverlay').classList.add('on');renderLibPills();renderLibExs();}
+function closeLib(){$('libOverlay').classList.remove('on');}
+
+function renderLibPills(){
+  const el=$('libPills');if(!el)return;
+  el.innerHTML=Object.keys(LIB).map(g=>
+    `<button class="lib-pill${g===libGroup?' on':''}" data-g="${g}">${g}</button>`
+  ).join('');
+  el.querySelectorAll('.lib-pill').forEach(b=>b.addEventListener('click',function(){
+    libGroup=this.dataset.g;renderLibPills();renderLibExs();
+  }));
+}
+
+function renderLibExs(){
+  const el=$('libExs');if(!el)return;
+  const exs=LIB[libGroup]||[];
+  el.innerHTML=exs.map((e,i)=>{
+    const ytq=encodeURIComponent(e.n+' técnica correcta');
+    const imgBtn=e.img?`<button class="imgbtn" data-lg="${libGroup}" data-li="${i}" data-img="${e.img}">📷 Ver</button>`:'';
+    return`<div class="lib-ex">
+      <div class="ex-top">
+        <div><div class="lib-ex-name">${e.n}</div><div class="lib-ex-muscle">${e.m}</div></div>
+        <div class="ex-btns">${imgBtn}<a class="yt-sm" href="https://www.youtube.com/results?search_query=${ytq}" target="_blank" rel="noopener">▶</a></div>
+      </div>
+      <div class="lib-img-panel" id="lip-${i}">
+        <div class="img-grid">
+          <div class="img-box"><span class="img-step">Inicio</span><div class="img-ldr" id="lil-${i}-0">⟳</div><img id="lii-${i}-0" alt="inicio"></div>
+          <div class="img-box"><span class="img-step">Ejecución</span><div class="img-ldr" id="lil-${i}-1">⟳</div><img id="lii-${i}-1" alt="ejecución"></div>
+        </div>
+        <div class="lib-tip">${e.tip}</div>
+      </div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.imgbtn[data-lg]').forEach(b=>b.addEventListener('click',function(){
+    toggleLibImg(this.dataset.lg,+this.dataset.li,this.dataset.img);
+  }));
+}
+
+function toggleLibImg(grp,idx,imgId){
+  const panel=$('lip-'+idx);
+  const btn=document.querySelector(`.imgbtn[data-lg="${grp}"][data-li="${idx}"]`);
+  if(!panel)return;
+  const open=panel.classList.toggle('on');
+  if(btn){btn.classList.toggle('on',open);btn.textContent=open?'📷 Ocultar':'📷 Ver';}
+  const key=grp+'-'+idx;
+  if(open&&!libImgLoaded[key]){
+    libImgLoaded[key]=true;
+    [0,1].forEach(si=>{
+      const img=$('lii-'+idx+'-'+si);
+      const ldr=$('lil-'+idx+'-'+si);
+      if(!img)return;
+      img.style.display='none';
+      img.onload=()=>{if(ldr)ldr.style.display='none';img.style.display='block';};
+      img.onerror=()=>{if(ldr){ldr.style.animation='none';ldr.textContent='—';}};
+      img.src=IMG_BASE+imgId+'/'+si+'.jpg';
+    });
+  }
+}
+
 // ── WIRING ────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',function(){
+  $('btnLib').addEventListener('click',openLib);
+  $('libBack').addEventListener('click',closeLib);
   $('btnHist').addEventListener('click',()=>togglePanel('pnlHist'));
   $('btnWt').addEventListener('click',()=>togglePanel('pnlWt'));
   $('btnInfo').addEventListener('click',()=>togglePanel('pnlInfo'));
