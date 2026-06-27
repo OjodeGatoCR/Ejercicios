@@ -228,15 +228,15 @@ function mkSup(){return [
 ];}
 
 // CORE — bloques estilo Chris Heria (45s/15s, 3 rondas)
-function coreEx(n,img){return ex(n,3,null,15,'Core','45 segundos de trabajo, 15 segundos de descanso. Mantén la técnica.',{tp:'timed',dur:45,img:img||'',core:true});}
+function coreEx(n){return ex(n,3,null,15,'Core','45 segundos de trabajo, 15 segundos de descanso. Mantén la técnica.',{tp:'timed',dur:45,core:true});}
 
 const CORES = {
-  A:[coreEx('Crunches bicicleta'),coreEx('Plancha frontal','Plank'),coreEx('Flutter kicks','Flutter_Kicks'),coreEx('Mountain climbers','Mountain_Climbers'),coreEx('Hollow body hold')],
-  B:[coreEx('Leg raises','Flat_Bench_Lying_Leg_Raise'),coreEx('Plancha lateral izquierda','Plank'),coreEx('Plancha lateral derecha','Plank'),coreEx('Russian twists','Russian_Twist'),coreEx('Dead bug','Dead_Bug')],
-  C:[coreEx('V-ups'),coreEx('Plancha frontal','Plank'),coreEx('Reverse crunches','Reverse_Crunch'),coreEx('Scissor kicks','Scissor_Kick'),coreEx('Superman hold')],
-  D:[coreEx('Dragon flag negativo'),coreEx('Windshield wipers'),coreEx('Plancha con rotación','Plank'),coreEx('High knees'),coreEx('Hollow body rocks')],
-  E:[coreEx('Toe touches','Standing_Toe_Touches'),coreEx('Plancha frontal','Plank'),coreEx('Scissor kicks','Scissor_Kick'),coreEx('Mountain climbers','Mountain_Climbers'),coreEx('Ab wheel rollout','Barbell_Ab_Rollout_-_On_Knees')],
-  F:[coreEx('Crunches bicicleta'),coreEx('V-ups'),coreEx('Dragon flag negativo'),coreEx('Windshield wipers'),coreEx('Hollow body hold'),coreEx('Mountain climbers','Mountain_Climbers')]
+  A:[coreEx('Crunches bicicleta'),coreEx('Plancha frontal'),coreEx('Flutter kicks'),coreEx('Mountain climbers'),coreEx('Hollow body hold')],
+  B:[coreEx('Leg raises'),coreEx('Plancha lateral izquierda'),coreEx('Plancha lateral derecha'),coreEx('Russian twists'),coreEx('Dead bug')],
+  C:[coreEx('V-ups'),coreEx('Plancha frontal'),coreEx('Reverse crunches'),coreEx('Scissor kicks'),coreEx('Superman hold')],
+  D:[coreEx('Dragon flag negativo'),coreEx('Windshield wipers'),coreEx('Plancha con rotación'),coreEx('High knees'),coreEx('Hollow body rocks')],
+  E:[coreEx('Toe touches'),coreEx('Plancha frontal'),coreEx('Scissor kicks'),coreEx('Mountain climbers'),coreEx('Ab wheel rollout')],
+  F:[coreEx('Crunches bicicleta'),coreEx('V-ups'),coreEx('Dragon flag negativo'),coreEx('Windshield wipers'),coreEx('Hollow body hold'),coreEx('Mountain climbers')]
 };
 
 const DAYS = [
@@ -389,8 +389,23 @@ function renderBody(){
       h+=mainExs.map((e,i)=>exHTML(d,e,d.exs.indexOf(e))).join('');
     }
     if(coreExs.length){
-      h+=`<div class="sec">Core — 45s trabajo / 15s descanso · ${coreRounds} rondas</div>`;
-      h+=coreExs.map(e=>exHTML(d,e,d.exs.indexOf(e))).join('');
+      h+=`<div class="sec">Core — 45s / 15s · ${coreRounds} rondas</div>`;
+      h+=`<a href="https://www.youtube.com/@ChrisHeria" target="_blank" rel="noopener" style="text-decoration:none;">
+        <div style="background:var(--surf);border:1.5px solid var(--brd);border-radius:14px;overflow:hidden;margin-bottom:10px;">
+          <div style="background:#FF0000;padding:18px 20px;display:flex;align-items:center;gap:14px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:22px;font-weight:900;color:#FF0000;">H</div>
+            <div>
+              <div style="font-size:17px;font-weight:700;color:#fff;">Chris Heria</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:2px;">@ChrisHeria · YouTube</div>
+            </div>
+            <div style="margin-left:auto;background:#fff;color:#FF0000;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;white-space:nowrap;">▶ Ver canal</div>
+          </div>
+          <div style="padding:12px 16px;">
+            <div style="font-size:13px;color:var(--tx);font-weight:600;margin-bottom:4px;">Referencia de ejercicios de Core</div>
+            <div style="font-size:12px;color:var(--txd);line-height:1.5;">Sigue el bloque de core de hoy usando los videos de Chris Heria como guía de técnica. Formato: 45s de trabajo · 15s de descanso · ${coreRounds} rondas.</div>
+          </div>
+        </div>
+      </a>`;
     }
     if(d.cardio)h+=`<div class="cardio-blk"><b>Cardio:</b> ${d.cardio}</div>`;
   }
